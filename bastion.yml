@@ -1,0 +1,60 @@
+---
+- name: Base setup
+  hosts:
+    - bastion
+  user: root
+  connection: ssh
+  gather_facts: yes
+  roles:
+    - common
+    - base
+  tags:
+    - base
+
+- name: LDAP setup
+  hosts:
+    - proxy
+  user: root
+  connection: ssh
+  gather_facts: yes
+  vars_prompt:
+    - name: "ldap_user"
+      prompt: "Enter the LDAP user name"
+      private: no
+
+    - name: "ldap_password"
+      prompt: "Enter the LDAP password"
+      private: yes
+  roles:
+    - common
+    - ldap
+  tags:
+    - ldap
+
+- name: Teleport setup
+  hosts:
+    - bastion
+  user: root
+  connection: ssh
+  gather_facts: yes
+  vars_files:
+    - roles/common/vars/secret.yml
+  roles:
+    - common
+    - teleport
+  tags:
+    - teleport
+
+- name: sessions cleanup
+  hosts:
+    - auth
+  user: root
+  connection: ssh
+  gather_facts: yes
+  vars_files:
+    - roles/common/vars/secret.yml
+  roles:
+    - common
+    - cleanup
+  tags:
+    - cleanup

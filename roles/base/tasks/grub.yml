@@ -1,0 +1,27 @@
+---
+- name: Protect single user mode (CentOS/RHEL 5)
+  lineinfile: 'dest=/etc/inittab line="su:S:wait:/sbin/sulogin" insertbefore="^id:\d:initdefault:$" state=present backup=yes'
+  when: ansible_distribution_major_version == "5"
+
+- name: Protect single user mode (CentOS/RHEL 6)
+  replace: dest=/etc/sysconfig/init regexp='^SINGLE=/sbin/sushell$' replace='SINGLE=/sbin/sulogin' backup=yes
+  when: ansible_distribution_major_version == "6"
+
+- name: Protect grub (CentOS/RHEL 5/6)
+  lineinfile: 'dest=/boot/grub/grub.conf line="password --md5 $1$bCrFb$0ClAN7HaGh1BEoX7QL8hR." insertbefore=BOF state=present backup=yes'
+  when: ansible_distribution_major_version == "5" or ansible_distribution_major_version == "6"
+
+# Do not use "lineinfile" as it is not idempotent, inserting this lines more than once will break everything forever.
+- name: Protect grub (CentOS/RHEL 7)
+  blockinfile:
+    dest: /etc/grub.d/10_linux
+    state: present
+    backup: yes
+    insertafter: EOF
+    block: |
+      cat << EOF
+      set superusers="root"
+      password_pbkdf2 root grub.pbkdf2.sha512.10000.6167FC01A5685FCC978D2D64D78E8225C148910D30A90F431822E8D9B691AA4BFAC5534C0B11D4EECC0A1D548F0A4FF5608ED72D88B261928EEE760751CA769B.C1A3C2DCE102F61695B85CBFBEDB9E1FCEF6109081A1F56C4F6005CB712CB075D28D5683B22C06C02DD297B5CAE83D78504441021C12D2DF3D190C776A11A3BF
+      EOF
+  when: ansible_distribution_major_version == "7"
+  notify: update-grub

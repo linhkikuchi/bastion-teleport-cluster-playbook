@@ -1,0 +1,2 @@
+# sudo for nrpe
+nrpe   ALL=(root) NOPASSWD:/usr/sbin/gluster,/bin/false

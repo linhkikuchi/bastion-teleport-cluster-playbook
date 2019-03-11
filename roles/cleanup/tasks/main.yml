@@ -1,0 +1,36 @@
+---
+
+- name: install pip pathlib for clean up logs script
+  pip:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - pathlib
+    - arrow
+  tags:
+    - cleanup
+
+- name: copy clean-up script
+  copy:
+    src: "{{ role_path }}/files/clean-up-sessions.py"
+    dest: /usr/local/bin/clean-up-sessions.py
+    owner: root
+    group: root
+    mode: 0755
+  tags:
+    - cleanup
+
+- name: add crontab entry to run the script daily
+  cron:
+    name: "Clean up sessions"
+    minute: 30
+    hour: 1
+    user: root
+    job: "/usr/local/bin/clean-up-sessions.py 2>&1 >> /tmp/clean-up-sessions.log"
+    cron_file: /etc/cron.d/cleanup
+    state: present
+  notify:
+    - 'restart-crond'
+  tags:
+    - cleanup
+    - crontab

@@ -1,0 +1,9 @@
+[bastion:children]
+auth
+proxy
+
+[auth]
+bastion-auth ansible_host=10.100.0.1 external_ip=
+
+[proxy]
+bastion-proxy ansible_host=10.20.30.1 external_ip=

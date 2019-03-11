@@ -1,0 +1,101 @@
+---
+- name: Install Requisites
+  yum: name={{item}} state=present
+  with_items:
+    - git
+    - go
+    - zip
+
+# Do not download if the target already exists.
+# to update to a newer version, change the teleport_url and delete teleport-latest.tar.gz
+- name: Download Teleport
+  get_url:
+    url: "{{ teleport_url }}"
+    dest: roles/teleport/files/teleport-latest.tar.gz
+    force: no
+  run_once: true
+  connection: local
+  register: new_teleport
+
+# unarchive module does not have an overwritte/force option,
+# so we will delete the target folder when a new version is downloaded
+- name: Delete old Teleport version
+  file:
+    path: /root/teleport
+    state: absent
+  when: new_teleport.changed
+
+- name: Copy Teleport
+  unarchive:
+    src: teleport-latest.tar.gz
+    dest: /root/
+    creates: /root/teleport
+
+- name: Install Teleport
+  command: make install
+  args:
+    chdir: /root/teleport/
+  when: new_teleport.changed
+
+- name: Fix Permissions
+  file:
+    dest: /var/lib/teleport
+    mode: "go-rwx"
+    state: directory
+    recurse: yes
+
+- name: Install teleport service
+  copy:
+    src: teleport-operations.service
+    dest: /etc/systemd/system/teleport-operations.service
+    mode: 0644
+  register: new_service
+
+- name: Install teleport service
+  copy:
+    src: teleport-general.service
+    dest: /etc/systemd/system/teleport-general.service
+    mode: 0644
+  register: new_service
+
+# This can't be a handler as it is required to be reloaded before starting the teleport service
+- name: Reload systemctl daemon
+  command: systemctl daemon-reload
+  when: new_service.changed
+
+- name: Configure Teleport Auth
+  template:
+    src: teleport-auth-operations.yaml.j2
+    dest: /etc/teleport/operations.yaml
+    mode: 0400
+  notify: restart-teleport-operations
+  when: inventory_hostname in groups.auth
+
+- name: Configure Teleport Auth
+  template:
+    src: teleport-auth-general.yaml.j2
+    dest: /etc/teleport/general.yaml
+    mode: 0400
+  notify: restart-teleport-general
+  when: inventory_hostname in groups.auth
+
+- name: Configure Teleport Proxy
+  template:
+    src: teleport-proxy-operations.yaml.j2
+    dest: /etc/operations/teleport.yaml
+    mode: 0400
+  notify: restart-teleport-operations
+  when: inventory_hostname in groups.proxy
+
+- name: Configure Teleport Proxy
+  template:
+    src: teleport-proxy-general.yaml.j2
+    dest: /etc/general/teleport.yaml
+    mode: 0400
+  notify: restart-teleport-general
+  when: inventory_hostname in groups.proxy
+
+- name: roles.yml
+  include: roles.yml
+  when: inventory_hostname in groups.auth
+  tags: roles
