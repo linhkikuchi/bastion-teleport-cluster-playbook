@@ -1,2 +1,0 @@
-# Sudo for Apache
-apache ALL=(gbrain) NOPASSWD:/usr/local/gbrain/localbrain/bin/status_braind,/usr/local/gbrain/localbrain/bin/webcontrol,/usr/local/gbrain/moby/bin/status_mobyd,/usr/bin/dory-admin,/bin/false

@@ -1,2 +1,0 @@
-# Sudo for gbrain
-gbrain ALL=(ALL) NOPASSWD:/root/bin/updatewebconfig-client,/etc/rc.d/init.d/httpd,/sbin/iptables,/root/bin/removethumbs_root,/root/bin/dotail,/root/bin/install_spelling,/root/bin/install_basis,/bin/false
